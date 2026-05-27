@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOC Counter – BBA & B.Com</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+      padding: 36px 40px 40px;
+      width: 100%;
+      max-width: 820px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a2940;
+      letter-spacing: -0.3px;
+    }
+
+    .header-left p {
+      font-size: 13px;
+      color: #7a8a9e;
+      margin-top: 4px;
+    }
+
+    .btn-refresh {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1a4fa3;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-refresh:hover { background: #133d85; }
+    .btn-refresh:disabled { background: #8fabd6; cursor: not-allowed; }
+    .btn-refresh svg { flex-shrink: 0; }
+
+    /* Status bar */
+    .status {
+      font-size: 12.5px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      margin-bottom: 22px;
+      display: none;
+    }
+    .status.loading { display: block; background: #e8f0fe; color: #1a4fa3; }
+    .status.error   { display: block; background: #fdecea; color: #b71c1c; }
+    .status.success { display: block; background: #e8f5e9; color: #2e7d32; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14.5px;
+    }
+
+    thead tr {
+      background: #1a4fa3;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 13px 18px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+
+    thead th:not(:first-child) { text-align: center; }
+
+    tbody tr {
+      border-bottom: 1px solid #e8edf3;
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f5f8ff; }
+
+    tbody td {
+      padding: 15px 18px;
+      color: #1a2940;
+      font-size: 14.5px;
+    }
+    tbody td:not(:first-child) { text-align: center; }
+
+    .course-name {
+      font-weight: 600;
+      color: #1a2940;
+    }
+
+    .pill {
+      display: inline-block;
+      min-width: 54px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .pill-total   { background: #e8f0fe; color: #1a4fa3; }
+    .pill-offers  { background: #e8f5e9; color: #256029; }
+    .pill-noc     { background: #fff3e0; color: #b45309; }
+    .pill-dash    { background: #f0f4f8; color: #9aa8b8; font-weight: 400; font-size: 13px; }
+
+    tfoot tr {
+      background: #f5f8ff;
+      border-top: 2px solid #d0d9ea;
+    }
+    tfoot td {
+      padding: 12px 18px;
+      font-size: 13px;
+      color: #4a5a74;
+    }
+    tfoot td:not(:first-child) { text-align: center; }
+
+    /* Spin animation */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinning { animation: spin 0.8s linear infinite; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <div class="header-left">
+      <h1>NOC Counter</h1>
+      <p>BBA &amp; B.Com(H) — Internships Sheet</p>
+    </div>
+    <button class="btn-refresh" id="refreshBtn" onclick="loadData()">
+      <svg id="refreshIcon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"/>
+        <path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="status" id="statusMsg"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Course</th>
+          <th>Total Count</th>
+          <th>Students with Offers&nbsp;(On Campus)</th>
+          <th>NOC Issued</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr>
+          <td class="course-name">BBA</td>
+          <td><span class="pill pill-total">130</span></td>
+          <td><span class="pill pill-dash" id="bba-offers">—</span></td>
+          <td><span class="pill pill-dash" id="bba-noc">—</span></td>
+        </tr>
+        <tr>
+          <td class="course-name">B.Com(H)</td>
+          <td><span class="pill pill-total">45</span></td>
+          <td><span class="pill pill-dash" id="bcom-offers">—</span></td>
+          <td><span class="pill pill-dash" id="bcom-noc">—</span></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td><strong>Total</strong></td>
+          <td><span class="pill pill-total">175</span></td>
+          <td id="total-offers"><span class="pill pill-dash">—</span></td>
+          <td id="total-noc"><span class="pill pill-dash">—</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<script>
+  // ─── PASTE YOUR APPS SCRIPT WEB APP URL BELOW ───────────────────────────
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxGNakW-fnB9vgrRtsV5CGDz5B4yIcJp4Yoc_qlMj-xsMenWhM8jQlWyX4z3xiZcUG7XQ/exec";
+  // ─────────────────────────────────────────────────────────────────────────
+
+  var TOTALS = { BBA: 130, BCom: 45 };
+
+  function setStatus(type, msg) {
+    var el = document.getElementById("statusMsg");
+    el.className = "status " + type;
+    el.textContent = msg;
+  }
+
+  function setPill(id, value, colorClass) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value;
+    el.className = "pill " + colorClass;
+  }
+
+  function loadData() {
+    if (SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+      setStatus("error", "⚠ Please paste your Apps Script Web App URL into the SCRIPT_URL variable in the HTML.");
+      return;
+    }
+
+    var btn  = document.getElementById("refreshBtn");
+    var icon = document.getElementById("refreshIcon");
+    btn.disabled = true;
+    icon.classList.add("spinning");
+    setStatus("loading", "⏳  Fetching data from Google Sheets…");
+
+    fetch(SCRIPT_URL)
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (!res.success) throw new Error(res.error || "Unknown error");
+
+        var d = res.data;
+
+        // BBA row
+        setPill("bba-offers", d.BBA.offers, "pill-offers");
+        setPill("bba-noc",    d.BBA.noc,    "pill-noc");
+
+        // B.Com row
+        setPill("bcom-offers", d.BCom.offers, "pill-offers");
+        setPill("bcom-noc",    d.BCom.noc,    "pill-noc");
+
+        // Totals footer
+        var totalOffers = d.BBA.offers + d.BCom.offers;
+        var totalNoc    = d.BBA.noc    + d.BCom.noc;
+
+        document.getElementById("total-offers").innerHTML =
+          '<span class="pill pill-offers">' + totalOffers + '</span>';
+        document.getElementById("total-noc").innerHTML =
+          '<span class="pill pill-noc">' + totalNoc + '</span>';
+
+        var now = new Date();
+        setStatus("success",
+          "✓ Updated at " +
+          now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        );
+      })
+      .catch(function(err) {
+        setStatus("error", "✗ Error: " + err.message);
+      })
+      .finally(function() {
+        btn.disabled = false;
+        icon.classList.remove("spinning");
+      });
+  }
+
+  loadData();
+</script>
+
+</body>
+</html>
